@@ -25,7 +25,12 @@ def ver_todos(usuario, contrasena):
             with connection.cursor() as cursor:
                 cursor.execute(sql)
                 rows = cursor.fetchall()
-                return [Carrera(idcarreras=row[0], nombre=row[1], duracion=row[2], institucion=row[3]) for row in rows]
+                if not rows:
+                    print("No hay carreras registradas.")
+                else:
+                    for row in rows:
+                        print("id: " + str(row[0])+ " nombre: " + str(row[1]) + " duracion: " + str(row[2]) + " institucion: " + str(row[3]))
+                
         except Exception as e:
             print(e)
         finally:

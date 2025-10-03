@@ -19,8 +19,13 @@ def menu_principal():
 
         if opcion == "1":
             nombre = input("Nombre de la carrera: ")
-            duracion = int(input("Duración (años): "))
+            duracion = input("Duración (años): ")
+            while not duracion.isdigit():
+                print("Por favor, ingresa un número entero válido para la duración.")
+                duracion = input("Duración (años): ")
+            duracion = int(duracion)
             institucion = input("Institución: ")
+            
             carrera = Carrera(nombre=nombre, duracion=duracion, institucion=institucion)
             if agregar(carrera, user, password):
                 print("Carrera agregada correctamente.")
@@ -28,18 +33,21 @@ def menu_principal():
                 print("Error al agregar la carrera.")
 
         elif opcion == "2":
-            carreras = ver_todos(user, password)
-            if carreras:
-                print("\n--- LISTA DE CARRERAS ---")
-                for c in carreras:
-                    print(c)
-            else:
-                print("No hay carreras registradas.")
+            print("\n--- LISTA DE CARRERAS ---")
+            ver_todos(user, password)
 
         elif opcion == "3":
-            id_update = int(input("ID de la carrera a actualizar: "))
+            id_update = input("ID de la carrera a actualizar: ")
+            while not id_update.isdigit():
+                print("Por favor, ingresa un número entero válido para el ID.")
+                id_update = input("ID de la carrera a actualizar: ")
+            id_update = int(id_update)
             nombre = input("Nuevo nombre (dejar vacío para no cambiar): ")
             duracion = input("Nueva duración (años, dejar vacío para no cambiar): ")
+            if duracion and not duracion.isdigit():
+                while not duracion.isdigit():
+                    print("Por favor, ingresa un número entero válido para la duración.")
+                    duracion = input("Nueva duración (años, dejar vacío para no cambiar): ")
             institucion = input("Nueva institución (dejar vacío para no cambiar): ")
 
             nombre = nombre if nombre else None
@@ -52,7 +60,11 @@ def menu_principal():
                 print("No se encontró la carrera con ese ID.")
 
         elif opcion == "4":
-            id_delete = int(input("ID de la carrera a borrar: "))
+            id_delete = input("ID de la carrera a borrar: ")
+            while not id_delete.isdigit():
+                print("Por favor, ingresa un número entero válido para el ID.")
+                id_delete = input("ID de la carrera a borrar: ")
+            id_delete = int(id_delete)
             if borrar(id_delete, user, password):
                 print("Carrera eliminada correctamente.")
             else:
