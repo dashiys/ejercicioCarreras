@@ -7,20 +7,19 @@ app = Flask(__name__)
 @app.route('/carreras', methods=['POST'])
 def crear_carrera():
     data = request.get_json()
-
+    usuario = data.get('usuario')
+    contrasena = data.get('contrasena')
     nombre = data.get('nombre')
     duracion = data.get('duracion')
     institucion = data.get('institucion')
-    usuario = data.get('usuario')
-    contrasena = data.get('contrasena')
 
-    if not all([nombre, duracion, institucion, usuario, contrasena]):
-        return jsonify({"success": False, "message": "Faltan datos requeridos"}), 400
+    if not all([usuario, contrasena, nombre, duracion, institucion]):
+        return jsonify({"success": False, "message": "Faltan datos"}), 400
 
     try:
-        carrera = Carrera(nombre=nombre, duracion=int(duracion), institucion=institucion)
+        duracion = int(duracion)
+        carrera = Carrera(nombre, duracion, institucion)
         resultado = agregar(carrera, usuario, contrasena)
-
         if resultado:
             return jsonify({"success": True, "message": "Carrera agregada correctamente"}), 201
         else:
@@ -28,21 +27,28 @@ def crear_carrera():
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
-
 @app.route('/carreras', methods=['GET'])
 def obtener_carreras():
     usuario = request.args.get('usuario')
     contrasena = request.args.get('contrasena')
 
     if not usuario or not contrasena:
-        return jsonify({"success": False, "message": "Debe proporcionar usuario y contraseña"}), 400
+        return jsonify({"success": False, "message": "Faltan credenciales"}), 400
 
     try:
-        connection_data = ver_todos(usuario, contrasena)
-        return jsonify({"success": True, "message": "Listado de carreras mostrado en consola"}), 200
+        carreras = ver_todos(usuario, contrasena)
+        data = []
+        for c in carreras:
+            data.append({
+                "id": getattr(c, "id", None),
+                "nombre": getattr(c, "nombre", ""),
+                "duracion": getattr(c, "duracion", 0),
+                "institucion": getattr(c, "institucion", "")
+            })
+        return jsonify({"success": True, "data": data}), 200
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
-    
+
 @app.route('/carreras/<int:idcarreras>', methods=['PUT'])
 def modificar_carrera(idcarreras):
     data = request.get_json()
@@ -52,18 +58,20 @@ def modificar_carrera(idcarreras):
     duracion = data.get('duracion')
     institucion = data.get('institucion')
 
-    if not usuario or not contrasena:
-        return jsonify({"success": False, "message": "Usuario y contraseña requeridos"}), 400
+    if not all([usuario, contrasena, nombre, duracion, institucion]):
+        return jsonify({"success": False, "message": "Faltan datos"}), 400
 
     try:
-        resultado = actualizar(idcarreras, usuario, contrasena, nombre, duracion, institucion)
+        duracion = int(duracion)
+        c = Carrera(nombre, duracion, institucion)
+        c.id = idcarreras
+        resultado = actualizar(c, usuario, contrasena)
         if resultado:
             return jsonify({"success": True, "message": "Carrera actualizada correctamente"}), 200
         else:
-            return jsonify({"success": False, "message": "No se encontró la carrera o no se realizaron cambios"}), 404
+            return jsonify({"success": False, "message": "No se encontró la carrera"}), 404
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
-
 
 @app.route('/carreras/<int:idcarreras>', methods=['DELETE'])
 def eliminar_carrera(idcarreras):
@@ -72,16 +80,18 @@ def eliminar_carrera(idcarreras):
     contrasena = data.get('contrasena')
 
     if not usuario or not contrasena:
-        return jsonify({"success": False, "message": "Usuario y contraseña requeridos"}), 400
+        return jsonify({"success": False, "message": "Faltan credenciales"}), 400
 
     try:
-        resultado = borrar(idcarreras, usuario, contrasena)
-        if resultado:
+        c = Carrera("", 0, "")
+        c.id = idcarreras
+        borrada = borrar(c, usuario, contrasena)
+        if borrada:
             return jsonify({"success": True, "message": "Carrera eliminada correctamente"}), 200
         else:
-            return jsonify({"success": False, "message": "No se encontró la carrera con ese ID"}), 404
+            return jsonify({"success": False, "message": "No se encontró la carrera"}), 404
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
-if __name__ == 'main':
+if __name__ == '__main__':
     app.run(debug=True)
