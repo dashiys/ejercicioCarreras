@@ -1,81 +1,111 @@
 from CarreraDAO import agregar, ver_todos, actualizar, borrar
 from Carrera import Carrera
 
-def menu_principal():
-    print("=== SISTEMA DE GESTIÓN DE CARRERAS ===")
+def leer_entero(msg):
+    while True:
+        val = input(msg).strip()
+        if val.isdigit():
+            return int(val)
+        print("✖ Error: introduce un número entero válido.")
 
-    user = input("Usuario de MySQL: ")
-    password = input("Contraseña: ")
+def leer_texto(msg):
+    while True:
+        val = input(msg).strip()
+        if val != "":
+            return val
+        print("✖ Error: el campo no puede estar vacío.")
+
+def menu():
+    print("=== GESTIÓN DE CARRERAS ===")
+    usuario = leer_texto("Usuario de MySQL: ")
+    contrasena = input("Contraseña: ")  # puede estar vacía según tu MySQL
 
     while True:
-        print("\n--- MENÚ PRINCIPAL ---")
-        print("1. Agregar carrera")
+        print("\n1. Agregar carrera")
         print("2. Ver todas las carreras")
         print("3. Actualizar carrera")
         print("4. Borrar carrera")
         print("5. Salir")
 
-        opcion = input("Selecciona una opción: ")
+        opcion = input("Elige una opción: ").strip()
 
         if opcion == "1":
-            nombre = input("Nombre de la carrera: ")
-            duracion = input("Duración (años): ")
-            while not duracion.isdigit():
-                print("Por favor, ingresa un número entero válido para la duración.")
-                duracion = input("Duración (años): ")
-            duracion = int(duracion)
-            institucion = input("Institución: ")
-            
-            carrera = Carrera(nombre=nombre, duracion=duracion, institucion=institucion)
-            if agregar(carrera, user, password):
-                print("Carrera agregada correctamente.")
-            else:
-                print("Error al agregar la carrera.")
+            try:
+                nombre = leer_texto("Nombre: ")
+                duracion = leer_entero("Duración (años): ")
+                institucion = leer_texto("Institución: ")
+                carrera = Carrera(nombre, duracion, institucion)
+                creada = agregar(carrera, usuario, contrasena)
+                if creada:
+                    print("✔ Carrera agregada:", creada)
+                else:
+                    print("✖ No se pudo agregar (revisa conexión/credenciales/BD).")
+            except Exception as e:
+                print("✖ Error inesperado al agregar:", e)
 
         elif opcion == "2":
-            print("\n--- LISTA DE CARRERAS ---")
-            ver_todos(user, password)
+            try:
+                carreras = ver_todos(usuario, contrasena)
+                if not carreras:
+                    print("(Sin registros o error de conexión)")
+                else:
+                    print("\n--- LISTA DE CARRERAS ---")
+                    for c in carreras:
+                        print(c)
+            except Exception as e:
+                print("✖ Error al listar:", e)
 
         elif opcion == "3":
-            id_update = input("ID de la carrera a actualizar: ")
-            while not id_update.isdigit():
-                print("Por favor, ingresa un número entero válido para el ID.")
-                id_update = input("ID de la carrera a actualizar: ")
-            id_update = int(id_update)
-            nombre = input("Nuevo nombre (dejar vacío para no cambiar): ")
-            duracion = input("Nueva duración (años, dejar vacío para no cambiar): ")
-            if duracion and not duracion.isdigit():
-                while not duracion.isdigit():
-                    print("Por favor, ingresa un número entero válido para la duración.")
-                    duracion = input("Nueva duración (años, dejar vacío para no cambiar): ")
-            institucion = input("Nueva institución (dejar vacío para no cambiar): ")
+            try:
+                idc = leer_entero("ID de la carrera a actualizar: ")
 
-            nombre = nombre if nombre else None
-            duracion = int(duracion) if duracion else None
-            institucion = institucion if institucion else None
+                # Permitir dejar iguales algunos campos (pero validando cuando se cambien)
+                print("Deja vacío para mantener el valor actual.")
+                nombre = input("Nuevo nombre: ").strip()
+                dur_txt = input("Nueva duración (años): ").strip()
+                institucion = input("Nueva institución: ").strip()
 
-            if actualizar(id_update, user, password, nombre, duracion, institucion):
-                print("Carrera actualizada correctamente.")
-            else:
-                print("No se encontró la carrera con ese ID.")
+                # Si no quieres permitir vacíos, usa leer_texto; aquí respetamos “dejar igual”
+                # Para actualizar necesitamos valores; si algún campo viene vacío, pedimos uno válido
+                if nombre == "":
+                    nombre = leer_texto("Nombre (obligatorio para actualizar): ")
+                if dur_txt == "":
+                    duracion = leer_entero("Duración (años) (obligatorio para actualizar): ")
+                else:
+                    if not dur_txt.isdigit():
+                        print("✖ Duración no válida.")
+                        continue
+                    duracion = int(dur_txt)
+                if institucion == "":
+                    institucion = leer_texto("Institución (obligatoria para actualizar): ")
+
+                carrera = Carrera(nombre, duracion, institucion, idc)
+                nueva = actualizar(carrera, usuario, contrasena)
+                if nueva:
+                    print("✔ Carrera actualizada:", nueva)
+                else:
+                    print("✖ No se pudo actualizar (ID inexistente o error).")
+            except Exception as e:
+                print("✖ Error inesperado al actualizar:", e)
 
         elif opcion == "4":
-            id_delete = input("ID de la carrera a borrar: ")
-            while not id_delete.isdigit():
-                print("Por favor, ingresa un número entero válido para el ID.")
-                id_delete = input("ID de la carrera a borrar: ")
-            id_delete = int(id_delete)
-            if borrar(id_delete, user, password):
-                print("Carrera eliminada correctamente.")
-            else:
-                print("No se encontró la carrera con ese ID.")
+            try:
+                idc = leer_entero("ID de la carrera a borrar: ")
+                carrera = Carrera("", 0, "", idc)
+                ok = borrar(carrera, usuario, contrasena)
+                if ok:
+                    print(f"✔ Carrera borrada (id: {idc})")
+                else:
+                    print("✖ No se pudo borrar (ID inexistente o error).")
+            except Exception as e:
+                print("✖ Error inesperado al borrar:", e)
 
         elif opcion == "5":
-            print("Saliendo del sistema...")
+            print("Saliendo del programa...")
             break
 
         else:
-            print("Opción no válida, intenta de nuevo.")
+            print("✖ Opción no válida. Elige 1-5.")
 
-
-menu_principal()
+if __name__ == "__main__":
+    menu()

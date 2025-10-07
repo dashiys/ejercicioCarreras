@@ -2,82 +2,105 @@ from db_conexion import coneccion_bd
 from Carrera import Carrera
 
 def agregar(carrera, usuario, contrasena):
-    connection = coneccion_bd(usuario, contrasena)
-    if connection.is_connected():
-        try:
-            with connection.cursor() as cursor:
-                sql = "INSERT INTO carreras (nombre, duracion, institucion) VALUES (%s, %s, %s)"
-                val = (carrera.getNombre(), carrera.getDuracion(), carrera.getInstitucion())
-                cursor.execute(sql, val)
-                connection.commit()
-                return True
-        except Exception as e:
-            print(e)
-        finally:
-            connection.close()
+    """Agrega una carrera y devuelve el objeto con su ID asignado."""
+    conexion = coneccion_bd(usuario, contrasena)
+    if not conexion or not conexion.is_connected():
+        print("No se pudo conectar a la base de datos.")
+        return None
+    try:
+        cursor = conexion.cursor()
+        sql = "INSERT INTO carreras (nombre, duracion, institucion) VALUES (%s, %s, %s)"
+        datos = (carrera.nombre, carrera.duracion, carrera.institucion)
+        cursor.execute(sql, datos)
+        conexion.commit()
+        carrera.id = cursor.lastrowid
+        return carrera
+    except Exception as e:
+        print("Error al insertar:", e)
+        return None
+    finally:
+        cursor.close()
+        conexion.close()
 
 
 def ver_todos(usuario, contrasena):
-    sql = "SELECT idcarreras, nombre, duracion, institucion FROM carreras ORDER BY idcarreras"
-    connection = coneccion_bd(usuario, contrasena)
-    if connection.is_connected():
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute(sql)
-                rows = cursor.fetchall()
-                if not rows:
-                    print("No hay carreras registradas.")
-                else:
-                    for row in rows:
-                        print("id: " + str(row[0])+ " nombre: " + str(row[1]) + " duracion: " + str(row[2]) + " institucion: " + str(row[3]))
-                
-        except Exception as e:
-            print(e)
-        finally:
-            connection.close()
+    """Devuelve una lista de objetos Carrera."""
+    conexion = coneccion_bd(usuario, contrasena)
+    lista = []
+    if not conexion or not conexion.is_connected():
+        print("No se pudo conectar a la base de datos.")
+        return lista
+    try:
+        cursor = conexion.cursor()
+        cursor.execute("SELECT idcarreras, nombre, duracion, institucion FROM carreras")
+        filas = cursor.fetchall()
+        for fila in filas:
+            c = Carrera(fila[1], fila[2], fila[3], fila[0])
+            lista.append(c)
+        return lista
+    except Exception as e:
+        print("Error al listar:", e)
+        return lista
+    finally:
+        cursor.close()
+        conexion.close()
 
-def actualizar(idcarreras, usuario, contrasena, nombre=None, duracion=None, institucion=None):
-    campos = []
-    valores = []
-    if nombre is not None:
-        campos.append("nombre = %s")
-        valores.append(nombre)
-    if duracion is not None:
-        campos.append("duracion = %s")
-        valores.append(duracion)
-    if institucion is not None:
-        campos.append("institucion = %s")
-        valores.append(institucion)
 
-    if not campos:
+def actualizar(carrera, usuario, contrasena):
+    """Actualiza una carrera existente y devuelve el objeto actualizado o None."""
+    if carrera.id is None:
+        print("El objeto Carrera no tiene ID asignado.")
+        return None
+    conexion = coneccion_bd(usuario, contrasena)
+    if not conexion or not conexion.is_connected():
+        print("No se pudo conectar a la base de datos.")
+        return None
+    try:
+        cursor = conexion.cursor()
+        sql = "UPDATE carreras SET nombre=%s, duracion=%s, institucion=%s WHERE idcarreras=%s"
+        datos = (carrera.nombre, carrera.duracion, carrera.institucion, carrera.id)
+        cursor.execute(sql, datos)
+        conexion.commit()
+        if cursor.rowcount == 0:
+            print("No se encontró ninguna carrera con ese ID.")
+            return None
+        # Leer la versión actualizada
+        cursor.execute("SELECT idcarreras, nombre, duracion, institucion FROM carreras WHERE idcarreras=%s", (carrera.id,))
+        fila = cursor.fetchone()
+        if fila:
+            return Carrera(fila[1], fila[2], fila[3], fila[0])
+        return None
+    except Exception as e:
+        print("Error al actualizar:", e)
+        return None
+    finally:
+        cursor.close()
+        conexion.close()
+
+
+def borrar(carrera, usuario, contrasena):
+    """Borra la carrera indicada por su ID. Devuelve True si se eliminó."""
+    if carrera.id is None:
+        print("El objeto Carrera no tiene ID asignado.")
         return False
+    conexion = coneccion_bd(usuario, contrasena)
+    if not conexion or not conexion.is_connected():
+        print("No se pudo conectar a la base de datos.")
+        return False
+    try:
+        cursor = conexion.cursor()
+        sql = "DELETE FROM carreras WHERE idcarreras=%s"
+        cursor.execute(sql, (carrera.id,))
+        conexion.commit()
+        if cursor.rowcount > 0:
+            return True
+        else:
+            print("No se encontró la carrera para borrar.")
+            return False
+    except Exception as e:
+        print("Error al borrar:", e)
+        return False
+    finally:
+        cursor.close()
+        conexion.close()
 
-    valores.append(idcarreras)
-    sql = f"UPDATE carreras SET {', '.join(campos)} WHERE idcarreras = %s"
-
-    connection = coneccion_bd(usuario, contrasena)
-    if connection.is_connected():
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute(sql, tuple(valores))
-                connection.commit()
-                return cursor.rowcount > 0
-        except Exception as e:
-            print(e)
-        finally:
-            connection.close()
-
-
-def borrar(idcarreras, usuario, contrasena):
-    sql = "DELETE FROM carreras WHERE idcarreras = %s"
-    connection = coneccion_bd(usuario, contrasena)
-    if connection.is_connected():
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute(sql, (idcarreras,))
-                connection.commit()
-                return cursor.rowcount > 0
-        except Exception as e:
-            print(e)
-        finally:
-            connection.close()
