@@ -1,4 +1,5 @@
 import requests
+from db_conexion import coneccion_bd
 
 BASE = "http://127.0.0.1:5000" 
 
@@ -20,6 +21,14 @@ def menu():
     print("=== CONSUMIDOR DE LA API DE CARRERAS ===")
     usuario = leer_texto("Usuario MySQL: ")
     contrasena = input("Contraseña: ")
+
+    conexion = coneccion_bd(usuario, contrasena)
+    if not conexion or not conexion.is_connected():
+        print("No se pudo conectar a la base de datos.")
+        return
+    else:
+        print("Conexión exitosa a la base de datos.")
+        conexion.close()
 
     while True:
         print("\n1. Agregar carrera (POST)")
@@ -83,6 +92,10 @@ def menu():
             break
         else:
             print("Opción no válida.")
+
+
+
+
 
 if __name__ == "__main__":
     menu()
